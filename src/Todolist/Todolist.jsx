@@ -1,26 +1,30 @@
 import React, { useState } from "react";
 import { v4 as uuidv4 } from "uuid";
+import useTodoStatus from "./HookComponents"; // default export
 
 const Todolist = () => {
-  const [inputValue, setInputValue] = useState("");
-  const [todolist, setTodolist] = useState([]);
+  const [taskInput, setTaskInput] = useState("");
   const [editId, setEditId] = useState(null);
   const [editText, setEditText] = useState("");
 
-  const handleChange = (event) => {
-    setInputValue(event.target.value);
-  };
+  const {
+    pendingTodos,
+    completedTodos,
+    setPendingTodos,
+    moveToCompleted,
+    moveToPending,
+  } = useTodoStatus();
 
-  const handleSubmit = () => {
-    const newTodoItem = { id: uuidv4(), title: inputValue };
+  const handleAdd = () => {
+    if (taskInput.trim() === "") return;
 
-    setTodolist([...todolist, newTodoItem]);
-    setInputValue("");
-  };
+    const newTodo = {
+      id: uuidv4(),
+      title: taskInput.trim(),
+    };
 
-  const handleDelete = (id) => {
-    const filteredList = todolist.filter((todo) => todo.id !== id);
-    setTodolist(filteredList);
+    setPendingTodos((prev) => [...prev, newTodo]);
+    setTaskInput("");
   };
 
   const handleEditClick = (id, currentText) => {
@@ -28,11 +32,20 @@ const Todolist = () => {
     setEditText(currentText);
   };
 
-  const handleSaveClick = (id) => {
-    const updatedList = todolist.map((todo) =>
-      todo.id === id ? { ...todo, title: editText } : todo
-    );
-    setTodolist(updatedList);
+  const handleSaveClick = (id, listType) => {
+    const updateList = (list, setList) => {
+      const updated = list.map((item) =>
+        item.id === id ? { ...item, title: editText } : item
+      );
+      setList(updated);
+    };
+
+    if (listType === "pending") {
+      updateList(pendingTodos, setPendingTodos);
+    } else {
+      updateList(completedTodos, moveToPending); // not ideal, but safe
+    }
+
     setEditId(null);
     setEditText("");
   };
@@ -42,37 +55,80 @@ const Todolist = () => {
     setEditText("");
   };
 
+  const handleDelete = (id, listType) => {
+    if (listType === "pending") {
+      setPendingTodos((prev) => prev.filter((todo) => todo.id !== id));
+    } else {
+      moveToPending((prev) => prev.filter((todo) => todo.id !== id));
+    }
+  };
+
   return (
-    <div>
-      <h2>Todo List</h2>
+    <div style={{ padding: "20px" }}>
+      <h1>Todo List</h1>
 
-      <input value={inputValue} onChange={handleChange} />
-      <button onClick={handleSubmit}>Submit</button>
+      <input
+        value={taskInput}
+        onChange={(e) => setTaskInput(e.target.value)}
+        placeholder="Enter a task"
+      />
+      <button onClick={handleAdd}>Add</button>
 
-      <ul>
-        {todolist.map((todo) => (
-          <li key={todo.id}>
-            {editId === todo.id ? (
-              <>
-                <input
-                  value={editText}
-                  onChange={(e) => setEditText(e.target.value)}
-                />
-                <button onClick={() => handleSaveClick(todo.id)}>Save</button>
-                <button onClick={handleCancelClick}>Cancel</button>
-              </>
-            ) : (
-              <>
-                <span>{todo.title}</span>
-                <button onClick={() => handleEditClick(todo.id, todo.title)}>
-                  Edit
-                </button>
-                <button onClick={() => handleDelete(todo.id)}>Delete</button>
-              </>
-            )}
-          </li>
-        ))}
-      </ul>
+      <div style={{ display: "flex", gap: "40px", marginTop: "20px" }}>
+        <div>
+          <h3>Pending</h3>
+          <ul>
+            {pendingTodos.map((todo) => (
+              <li key={todo.id}>
+                {editId === todo.id ? (
+                  <>
+                    <input
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                    />
+                    <button onClick={() => handleSaveClick(todo.id, "pending")}>Save</button>
+                    <button onClick={handleCancelClick}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    {todo.title}
+                    <button onClick={() => handleEditClick(todo.id, todo.title)}>Edit</button>
+                    <button onClick={() => handleDelete(todo.id, "pending")}>Delete</button>
+                    <button onClick={() => moveToCompleted(todo)}>Completed</button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+
+        <div>
+          <h3>Completed</h3>
+          <ul>
+            {completedTodos.map((todo) => (
+              <li key={todo.id}>
+                {editId === todo.id ? (
+                  <>
+                    <input
+                      value={editText}
+                      onChange={(e) => setEditText(e.target.value)}
+                    />
+                    <button onClick={() => handleSaveClick(todo.id, "completed")}>Save</button>
+                    <button onClick={handleCancelClick}>Cancel</button>
+                  </>
+                ) : (
+                  <>
+                    {todo.title}
+                    <button onClick={() => handleEditClick(todo.id, todo.title)}>Edit</button>
+                    <button onClick={() => handleDelete(todo.id, "completed")}>Delete</button>
+                    <button onClick={() => moveToPending(todo)}>Pending</button>
+                  </>
+                )}
+              </li>
+            ))}
+          </ul>
+        </div>
+      </div>
     </div>
   );
 };
