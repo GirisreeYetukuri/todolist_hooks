@@ -11,6 +11,7 @@ const Todolist = () => {
     pendingTodos,
     completedTodos,
     setPendingTodos,
+    setCompletedTodos,
     moveToCompleted,
     moveToPending,
   } = useTodoStatus();
@@ -43,7 +44,7 @@ const Todolist = () => {
     if (listType === "pending") {
       updateList(pendingTodos, setPendingTodos);
     } else {
-      updateList(completedTodos, moveToPending); // not ideal, but safe
+      updateList(completedTodos, setCompletedTodos); 
     }
 
     setEditId(null);
